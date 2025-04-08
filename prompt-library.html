@@ -1,0 +1,1437 @@
+<!DOCTYPE html>
+<!-- https://github.com/goossaert/prompt-composer/ -->
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Prompt Library v1.0</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <style>
+    /* Base styles for prompt parts */
+    .prompt-json {
+      font-family: monospace;
+      white-space: pre;
+      background-color: #f8f9fa;
+      padding: 1rem;
+      border-radius: 0.25rem;
+      border: 1px solid #e2e8f0;
+      overflow-x: auto;
+    }
+    .template-part {
+      background-color: #e6ffed;
+      border: 1px dashed #38a169;
+      padding: 0.2rem 0.4rem;
+      border-radius: 0.25rem;
+      margin: 0 0.2rem;
+    }
+    .input-field {
+      background-color: #ebf8ff;
+      border: 1px dashed #3182ce;
+      border-radius: 0.25rem;
+      padding: 0.2rem 0.4rem;
+      margin: 0 0.2rem;
+    }
+    .prefilled-part {
+      background-color: #fff3cd;
+      border: 1px dashed #d69e2e;
+      padding: 0.2rem 0.4rem;
+      border-radius: 0.25rem;
+      margin: 0 0.2rem;
+    }
+    .global-part {
+      background-color: #e0f7fa;
+      border: 1px dashed #60a5fa;
+      padding: 0.2rem 0.4rem;
+      border-radius: 0.25rem;
+      margin: 0 0.2rem;
+    }
+    .error {
+      background-color: #f8d7da;
+      border: 1px solid #f5c6cb;
+      padding: 0.2rem 0.4rem;
+      border-radius: 0.25rem;
+      margin: 0 0.2rem;
+      color: #721c24;
+    }
+    .sidebar {
+      height: calc(100vh - 4rem);
+    }
+    #toast {
+      transition: all 0.3s ease-in-out;
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    #toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .tag {
+      display: inline-block;
+      background-color: #e2e8f0;
+      border-radius: 9999px;
+      padding: 0.25rem 0.75rem;
+      margin-right: 0.5rem;
+      font-size: 0.75rem;
+      color: #4a5568;
+    }
+    textarea {
+      min-height: 450px;
+    }
+    /* Dark mode styles */
+    .dark body {
+      background-color: #1a202c;
+      color: #cbd5e0;
+    }
+    .dark .bg-white {
+      background-color: #2d3748 !important;
+    }
+    .dark .border-gray-300 {
+      border-color: #4a5568 !important;
+    }
+    .dark .text-gray-700 {
+      color: #718096 !important;
+    }
+    .dark .text-gray-800 {
+      color: #e2e8f0 !important;
+    }
+    .dark .bg-gray-50 {
+      background-color: #1a202c !important;
+    }
+    .dark .hover\:bg-blue-700:hover {
+      background-color: #2b6cb0 !important;
+    }
+    .dark .hover\:bg-blue-800:hover {
+      background-color: #2c5282 !important;
+    }
+    .dark .bg-blue-600 {
+      background-color: #3182ce !important;
+    }
+    .dark .hover\:bg-green-700:hover {
+      background-color: #2f855a !important;
+    }
+    .dark .bg-green-600 {
+      background-color: #38a169 !important;
+    }
+    .dark .bg-red-600 {
+      background-color: #e53e3e !important;
+    }
+    .dark .hover\:bg-red-700:hover {
+      background-color: #c53030 !important;
+    }
+    .dark .bg-gray-200 {
+      background-color: #4a5568 !important;
+    }
+    .dark .hover\:bg-gray-300:hover {
+      background-color: #2d3748 !important;
+    }
+    /* Additional dark mode overrides for prompt composer elements */
+    .dark #promptName,
+    .dark #promptTags,
+    .dark #promptContent,
+    .dark label,
+    .dark .tag,
+    .dark .input-field,
+    .dark .template-part,
+    .dark .prefilled-part {
+      color: #4a5568 !important;
+    }
+    /* New dark mode overrides for more readable text */
+    .dark .sidebar h1 {
+      color: #e2e8f0 !important;
+    }
+    .dark .sidebar button {
+      color: #e2e8f0 !important;
+    }
+    .dark .prompt-item h3 {
+      color: #e2e8f0 !important;
+    }
+    .dark #homeContent h3 {
+      color: #e2e8f0 !important;
+    }
+    .dark #globalTemplateKey,
+    .dark #globalTemplateValue {
+      color: #2d3748 !important;
+    }
+    .dark .global-part {
+      color: #2d3748 !important;
+    }
+  </style>
+</head>
+<body class="bg-gray-50">
+  <div class="flex h-screen">
+    <!-- Sidebar -->
+    <div class="w-64 bg-white border-r border-gray-200 sidebar hidden md:block">
+      <div class="p-4">
+        <h1 class="text-xl font-bold text-gray-800 mb-6">Prompt Library v1.0</h1>
+        <div class="mb-4">
+          <button id="newPromptBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg flex items-center justify-center">
+            <i class="fas fa-plus mr-2"></i> New Prompt
+          </button>
+        </div>
+        <div class="relative mb-4">
+          <input type="text" id="searchPrompts" placeholder="Search prompts..." class="w-full border border-gray-300 rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+          <i class="fas fa-search absolute right-3 top-2.5 text-gray-400"></i>
+        </div>
+        <!-- Home Button -->
+        <button id="homeBtn" class="w-full bg-gray-200 hover:bg-gray-300 text-gray-700 py-2 px-4 rounded-lg mb-2">
+          Home
+        </button>
+        <!-- Composer and Settings Buttons (Composer above Settings) -->
+        <button id="composerBtn" class="w-full bg-gray-200 hover:bg-gray-300 text-gray-700 py-2 px-4 rounded-lg mb-2">
+          Prompt Composer
+        </button>
+        <button id="trashBtn" class="w-full bg-gray-200 hover:bg-gray-300 text-gray-700 py-2 px-4 rounded-lg mb-2">
+            Trash
+          </button>
+        <button id="settingsBtn" class="w-full bg-gray-200 hover:bg-gray-300 text-gray-700 py-2 px-4 rounded-lg">
+          Settings
+        </button>
+      </div>
+      <div id="promptList" class="overflow-y-auto h-5/6 p-4 space-y-2">
+        <!-- Prompts will be loaded here -->
+      </div>
+    </div>
+    
+    <!-- Mobile sidebar toggle -->
+    <div class="md:hidden fixed top-4 left-4 z-10">
+      <button id="mobileSidebarToggle" class="bg-white p-2 rounded-lg shadow-lg">
+        <i class="fas fa-bars text-gray-700"></i>
+      </button>
+    </div>
+    
+    <!-- Mobile sidebar overlay -->
+    <div id="mobileSidebarOverlay" class="fixed inset-0 bg-black bg-opacity-50 z-20 hidden"></div>
+    
+    <!-- Mobile sidebar -->
+    <div id="mobileSidebar" class="fixed inset-y-0 left-0 transform -translate-x-full w-64 bg-white z-30 transition-transform duration-300">
+      <div class="p-4">
+        <div class="flex justify-between items-center mb-6">
+          <h1 class="text-xl font-bold text-gray-800">Prompt Library</h1>
+          <button id="closeMobileSidebar" class="text-gray-500 hover:text-gray-700">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="mb-4">
+          <button id="mobileNewPromptBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg flex items-center justify-center">
+            <i class="fas fa-plus mr-2"></i> New Prompt
+          </button>
+        </div>
+        <div class="relative mb-4">
+          <input type="text" id="mobileSearchPrompts" placeholder="Search prompts..." class="w-full border border-gray-300 rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+          <i class="fas fa-search absolute right-3 top-2.5 text-gray-400"></i>
+        </div>
+        <!-- Mobile Home Button -->
+        <button id="mobileHomeBtn" class="w-full bg-gray-200 hover:bg-gray-300 text-gray-700 py-2 px-4 rounded-lg mb-2">
+          Home
+        </button>
+        <!-- Mobile Settings Button -->
+        <button id="mobileSettingsBtn" class="w-full bg-gray-200 hover:bg-gray-300 text-gray-700 py-2 px-4 rounded-lg mb-2">
+          Settings
+        </button>
+        <div id="mobilePromptList" class="space-y-2 mt-4">
+          <!-- Mobile prompts will be loaded here -->
+        </div>
+      </div>
+    </div>
+    
+    <!-- Main content -->
+    <div class="flex-1 overflow-y-auto p-6">
+      <!-- Home View (hidden by default) -->
+      <div id="homeView" class="max-w-6xl mx-auto">
+        <h2 class="text-2xl font-bold text-gray-800 mb-4">Home</h2>
+        <div id="homeContent">
+          <!-- Home view content will be dynamically generated here -->
+        </div>
+      </div>
+      
+      <!-- Composer View -->
+      <div id="composerView" class="max-w-4xl mx-auto hidden">
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-2xl font-bold text-gray-800">Prompt Composer</h2>
+          <button id="toggleViewBtn" class="text-blue-600 hover:text-blue-800 hidden">
+            <i class="fas fa-code mr-1"></i> Toggle JSON View
+          </button>
+        </div>
+        
+        <!-- Form for creating/editing prompts -->
+        <div id="promptForm" class="bg-white rounded-lg shadow-md p-6 mb-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+              <label for="promptName" class="block text-sm font-medium text-gray-700 mb-1">Prompt Name</label>
+              <input type="text" id="promptName" class="w-full border border-gray-300 rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+            </div>
+            <div>
+              <label for="promptTags" class="block text-sm font-medium text-gray-700 mb-1">Tags (comma separated)</label>
+              <input type="text" id="promptTags" class="w-full border border-gray-300 rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="marketing, copywriting, social">
+            </div>
+          </div>
+          <!-- New Category Field -->
+          <div class="mb-4">
+            <label for="promptCategory" class="block text-sm font-medium text-gray-700 mb-1">Category</label>
+            <input type="text" id="promptCategory" class="w-full border border-gray-300 rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+          </div>
+          
+          <div class="mb-4">
+            <label for="promptContent" class="block text-sm font-medium text-gray-700 mb-1">Prompt Content</label>
+            <p class="text-xs text-gray-500 mb-2">
+              Use <code class="bg-gray-100 px-1 py-0.5 rounded">${variable}</code> for input fields<br>Use <span class="template-part">[brackets]</span> to indicate placeholders to replace manually<br>Use <code class="bg-gray-100 px-1 py-0.5 rounded">{{double braces}}</code> for optional parts (can be toggled on and off)<br>Use <code class="bg-gray-100 px-1 py-0.5 rounded">&lt;&lt;double chevrons&gt;&gt;</code> to use global templates that are shared across all prompts (can be toggled on and off).
+            </p>
+            <textarea id="promptContent" class="w-full border border-gray-300 rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"></textarea>
+          </div>
+          
+          <div class="flex justify-between items-center">
+            <div class="flex space-x-2">
+              <button id="toggleTemplateBtn" class="bg-gray-100 hover:bg-gray-200 text-gray-800 py-1 px-3 rounded-lg text-sm flex items-center">
+                <i class="fas fa-puzzle-piece mr-1"></i> Mark as Template
+              </button>
+              <button id="addVariableBtn" class="bg-gray-100 hover:bg-gray-200 text-gray-800 py-1 px-3 rounded-lg text-sm flex items-center">
+                <i class="fas fa-plus-circle mr-1"></i> Add Variable
+              </button>
+            </div>
+            <div>
+              <button id="savePromptBtn" class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg">
+                Save Prompt
+              </button>
+              <button id="cancelPromptBtn" class="ml-2 bg-gray-200 hover:bg-gray-300 text-gray-700 py-2 px-4 rounded-lg">
+                Reset
+              </button>              
+              <button id="duplicatePromptBtn" class="ml-2 bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg">
+                Duplicate Prompt
+              </button>
+              <button id="deletePromptBtn" class="ml-2 bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg">
+                Delete Prompt
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        <!-- JSON View (hidden by default) -->
+        <div id="jsonView" class="bg-white rounded-lg shadow-md p-6 mb-6 hidden">
+          <div class="prompt-json" id="promptJson"></div>
+          <button id="copyJsonBtn" class="mt-3 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg">
+            <i class="fas fa-copy mr-1"></i> Copy JSON
+          </button>
+        </div>
+        
+        <!-- Prompt Preview -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-semibold text-gray-800">Preview &amp; Inputs</h3>
+            <button id="copyPromptBtn" class="bg-green-600 hover:bg-green-700 text-white py-1 px-3 rounded-lg text-sm flex items-center">
+              <i class="fas fa-copy mr-1"></i> Copy Prompt
+            </button>
+          </div>
+          
+          <div id="variablesContainer" class="mb-4">
+            <!-- Dynamic fields for variables will appear here -->
+          </div>
+          
+          <!-- Container for prefilled parts checkboxes -->
+          <div id="prefilledContainer" class="mb-4">
+            <!-- Checkboxes for prefilled parts will be added here -->
+          </div>
+          <!-- Container for global templates toggles -->
+          <div id="globalTemplatesContainer" class="mb-4">
+            <!-- Checkboxes for global templates will be added here -->
+          </div>
+          
+          <div class="bg-gray-50 p-4 rounded-lg">
+            <div id="promptPreview" class="whitespace-pre-wrap"></div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Settings View (hidden by default) -->
+      <div id="settingsView" class="max-w-4xl mx-auto hidden">
+        <h2 class="text-2xl font-bold text-gray-800 mb-4">Settings</h2>
+        <!-- Library Export / Import Section -->
+        <div class="mb-6">
+          <h3 class="text-lg font-semibold text-gray-800 mb-2">Library Export / Import</h3>
+          <div class="flex flex-wrap items-center gap-2 mb-4">
+            <button id="exportLibraryBtn" class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg">Export Library</button>
+            <button id="importLibraryBtn" class="bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg">Import Library</button>
+            <input type="file" id="importFileInput" accept="application/json" class="hidden">
+          </div>
+        </div>
+        <!-- Global Templates Section -->
+        <div class="mb-6">
+          <h3 class="text-lg font-semibold text-gray-800 mb-2">Global Templates</h3>
+          <div class="mb-4 flex flex-col md:flex-row md:items-start gap-2">
+            <input type="text" id="globalTemplateKey" placeholder="Template Keyword" class="border border-gray-300 rounded-lg py-2 px-3 w-full md:w-1/3">
+            <textarea id="globalTemplateValue" placeholder="Template Full Text" class="border border-gray-300 rounded-lg py-2 px-3 w-full md:w-1/3" rows="3"></textarea>
+            <button id="addGlobalTemplateBtn" class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg">Add Global Template</button>
+          </div>
+          <div id="globalTemplatesList" class="space-y-2">
+            <!-- Global templates will be listed here with edit options -->
+          </div>
+        </div>
+        <!-- Appearance Section -->
+        <div class="mb-6">
+          <h3 class="text-lg font-semibold text-gray-800 mb-2">Appearance</h3>
+          <select id="themeSelector" class="border border-gray-300 rounded-lg py-2 px-3">
+            <option value="system">Same as system</option>
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Trash View (hidden by default) -->
+      <div id="trashView" class="max-w-4xl mx-auto hidden">
+        <h2 class="text-2xl font-bold text-gray-800 mb-4">Trash</h2>
+        <div id="trashContent">
+          <!-- Trashed prompts will be listed here -->
+        </div>
+      </div>
+
+    </div>
+  </div>
+  
+  <!-- Toast notification -->
+  <div id="toast" class="fixed bottom-4 right-4 bg-gray-800 text-white px-6 py-3 rounded-lg shadow-lg hidden">
+    <div class="flex items-center">
+      <i class="fas fa-check-circle mr-2 text-green-400"></i>
+      <span id="toastMessage">Prompt copied to clipboard!</span>
+    </div>
+  </div>
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      // Initialize prompt library and global templates from localStorage
+      let prompts = JSON.parse(localStorage.getItem('prompts')) || [];
+      let currentPromptId = null;
+      let isEditing = false;
+      let jsonViewVisible = false;
+      let isTrashView = false;
+      let importMode = ""; // "replace" mode only
+      
+      // DOM elements
+      const promptList = document.getElementById('promptList');
+      const mobilePromptList = document.getElementById('mobilePromptList');
+      const composerView = document.getElementById('composerView');
+      const settingsView = document.getElementById('settingsView');
+      const homeView = document.getElementById('homeView');
+      const promptForm = document.getElementById('promptForm');
+      const jsonView = document.getElementById('jsonView');
+      const toggleViewBtn = document.getElementById('toggleViewBtn');
+      const promptJson = document.getElementById('promptJson');
+      const copyJsonBtn = document.getElementById('copyJsonBtn');
+      const savePromptBtn = document.getElementById('savePromptBtn');
+      const cancelPromptBtn = document.getElementById('cancelPromptBtn');
+      const duplicatePromptBtn = document.getElementById('duplicatePromptBtn');
+      const deletePromptBtn = document.getElementById('deletePromptBtn');
+      const newPromptBtn = document.getElementById('newPromptBtn');
+      const mobileNewPromptBtn = document.getElementById('mobileNewPromptBtn');
+      const promptName = document.getElementById('promptName');
+      const promptTags = document.getElementById('promptTags');
+      const promptCategory = document.getElementById('promptCategory');
+      const promptContent = document.getElementById('promptContent');
+      const toggleTemplateBtn = document.getElementById('toggleTemplateBtn');
+      const addVariableBtn = document.getElementById('addVariableBtn');
+      const promptPreview = document.getElementById('promptPreview');
+      const variablesContainer = document.getElementById('variablesContainer');
+      const prefilledContainer = document.getElementById('prefilledContainer');
+      const globalTemplatesContainer = document.getElementById('globalTemplatesContainer');
+      const copyPromptBtn = document.getElementById('copyPromptBtn');
+      const searchPrompts = document.getElementById('searchPrompts');
+      const mobileSearchPrompts = document.getElementById('mobileSearchPrompts');
+      const toast = document.getElementById('toast');
+      const toastMessage = document.getElementById('toastMessage');
+      const mobileSidebarToggle = document.getElementById('mobileSidebarToggle');
+      const mobileSidebarOverlay = document.getElementById('mobileSidebarOverlay');
+      const mobileSidebar = document.getElementById('mobileSidebar');
+      const closeMobileSidebar = document.getElementById('closeMobileSidebar');
+      const exportLibraryBtn = document.getElementById('exportLibraryBtn');
+      const importLibraryBtn = document.getElementById('importLibraryBtn');
+      const importFileInput = document.getElementById('importFileInput');
+      const globalTemplateKey = document.getElementById('globalTemplateKey');
+      const globalTemplateValue = document.getElementById('globalTemplateValue');
+      const addGlobalTemplateBtn = document.getElementById('addGlobalTemplateBtn');
+      const globalTemplatesList = document.getElementById('globalTemplatesList');
+      const settingsBtn = document.getElementById('settingsBtn');
+      const trashBtn = document.getElementById('trashBtn');
+      const composerBtn = document.getElementById('composerBtn');
+      const homeBtn = document.getElementById('homeBtn');
+      const mobileSettingsBtn = document.getElementById('mobileSettingsBtn');
+      const mobileHomeBtn = document.getElementById('mobileHomeBtn');
+      const themeSelector = document.getElementById('themeSelector');
+
+      // To Preserve the Toggle State for Prefilled Parts and Global Templates
+      let prefilledCheckboxStates = {};
+      let globalCheckboxStates = {};
+
+      // Set the default view to Home when the app loads
+      showHomeView();
+      
+      // Appearance / Dark mode logic
+      let theme = localStorage.getItem('theme') || 'system';
+      themeSelector.value = theme;
+      function applyTheme(theme) {
+        if (theme === 'light') {
+          document.documentElement.classList.remove('dark');
+        } else if (theme === 'dark') {
+          document.documentElement.classList.add('dark');
+        } else {
+          // system preference
+          if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.classList.add('dark');
+          } else {
+            document.documentElement.classList.remove('dark');
+          }
+        }
+      }
+      applyTheme(theme);
+      themeSelector.addEventListener('change', function () {
+        theme = themeSelector.value;
+        localStorage.setItem('theme', theme);
+        applyTheme(theme);
+      });
+      
+      // Global Templates functions
+      function loadGlobalTemplates() {
+        return JSON.parse(localStorage.getItem('globalTemplates')) || {};
+      }
+      function saveGlobalTemplates(templates) {
+        localStorage.setItem('globalTemplates', JSON.stringify(templates));
+      }
+      function updateGlobalTemplatesUI() {
+        globalTemplatesList.innerHTML = '';
+        const templates = loadGlobalTemplates();
+        for (let key in templates) {
+          const div = document.createElement('div');
+          div.className = "flex items-center justify-between border p-2 rounded";
+          
+          const textSpan = document.createElement('span');
+          textSpan.textContent = key + ": " + templates[key];
+          
+          const btnContainer = document.createElement('div');
+          
+          const editBtn = document.createElement('button');
+          editBtn.className = "bg-yellow-500 hover:bg-yellow-600 text-white py-1 px-2 rounded text-xs mr-2";
+          editBtn.textContent = "Edit";
+          editBtn.addEventListener('click', function () {
+            // Create input fields and Save/Cancel buttons for editing
+            const keyInput = document.createElement('input');
+            keyInput.type = 'text';
+            keyInput.value = key;
+            keyInput.className = "border border-gray-300 rounded p-1 mr-2";
+            const valueTextarea = document.createElement('textarea');
+            valueTextarea.value = templates[key];
+            valueTextarea.className = "border border-gray-300 rounded p-1 w-full";
+            div.innerHTML = "";
+            const inputContainer = document.createElement('div');
+            inputContainer.className = "flex flex-col gap-2 w-full";
+            inputContainer.appendChild(keyInput);
+            inputContainer.appendChild(valueTextarea);
+            const newBtnContainer = document.createElement('div');
+            newBtnContainer.className = "flex gap-2 mt-2";
+            const saveBtn = document.createElement('button');
+            saveBtn.className = "bg-green-600 hover:bg-green-700 text-white py-1 px-2 rounded text-xs";
+            saveBtn.textContent = "Save";
+            const cancelBtn = document.createElement('button');
+            cancelBtn.className = "bg-gray-600 hover:bg-gray-700 text-white py-1 px-2 rounded text-xs";
+            cancelBtn.textContent = "Cancel";
+            newBtnContainer.appendChild(saveBtn);
+            newBtnContainer.appendChild(cancelBtn);
+            div.appendChild(inputContainer);
+            div.appendChild(newBtnContainer);
+            
+            saveBtn.addEventListener('click', function () {
+              const newKey = keyInput.value.trim();
+              const newValue = valueTextarea.value.trim();
+              if (!newKey || !newValue) {
+                showToast("Please provide both key and value", "error");
+                return;
+              }
+              if (newKey !== key && templates[newKey]) {
+                showToast("Template keyword already exists", "error");
+                return;
+              }
+              if (newKey !== key) {
+                delete templates[key];
+              }
+              templates[newKey] = newValue;
+              saveGlobalTemplates(templates);
+              updateGlobalTemplatesUI();
+              showToast("Global template updated");
+            });
+            
+            cancelBtn.addEventListener('click', function () {
+              updateGlobalTemplatesUI();
+            });
+          });
+          
+          const delBtn = document.createElement('button');
+          delBtn.className = "bg-red-600 hover:bg-red-700 text-white py-1 px-2 rounded text-xs";
+          delBtn.textContent = "Delete";
+          delBtn.addEventListener('click', () => {
+            delete templates[key];
+            saveGlobalTemplates(templates);
+            updateGlobalTemplatesUI();
+            showToast("Global template deleted");
+          });
+          
+          btnContainer.appendChild(editBtn);
+          btnContainer.appendChild(delBtn);
+          div.appendChild(textSpan);
+          div.appendChild(btnContainer);
+          globalTemplatesList.appendChild(div);
+        }
+      }
+      
+      // Add Global Template logic
+      addGlobalTemplateBtn.addEventListener('click', () => {
+        const key = globalTemplateKey.value.trim();
+        const value = globalTemplateValue.value.trim();
+        if (!key || !value) {
+          showToast("Please provide both template keyword and value", "error");
+          return;
+        }
+        const templates = loadGlobalTemplates();
+        if (templates[key]) {
+          showToast("Template keyword already exists", "error");
+          return;
+        }
+        templates[key] = value;
+        saveGlobalTemplates(templates);
+        updateGlobalTemplatesUI();
+        globalTemplateKey.value = '';
+        globalTemplateValue.value = '';
+        showToast("Global template added successfully");
+      });
+      
+      // Purge prompts in trash for 30 days or more
+      function purgeOldTrash() {
+        const now = new Date().getTime();
+        const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
+        let changed = false;
+        prompts = prompts.filter(prompt => {
+          if (prompt.trashed) {
+            const trashedTime = new Date(prompt.trashedAt).getTime();
+            if (now - trashedTime >= THIRTY_DAYS) {
+              changed = true;
+              return false;
+            }
+          }
+          return true;
+        });
+        if (changed) {
+          localStorage.setItem('prompts', JSON.stringify(prompts));
+        }
+      }
+      
+      // Load prompts into the sidebar based on current view
+      function loadPrompts(searchTerm = '') {
+        purgeOldTrash();
+        promptList.innerHTML = '';
+        mobilePromptList.innerHTML = '';
+        const filteredPrompts = prompts.filter(prompt => {
+          const inTrash = !!prompt.trashed;
+          if (isTrashView && !inTrash) return false;
+          if (!isTrashView && inTrash) return false;
+          return prompt.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (prompt.tags && prompt.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase())));
+        });
+        if (filteredPrompts.length === 0) {
+          const emptyMessage = document.createElement('div');
+          emptyMessage.className = 'text-center text-gray-500 py-4';
+          emptyMessage.textContent = searchTerm ? 'No matching prompts found' : (isTrashView ? 'Trash is empty' : 'No prompts yet. Create your first one!');
+          promptList.appendChild(emptyMessage);
+          mobilePromptList.appendChild(emptyMessage.cloneNode(true));
+          return;
+        }
+        filteredPrompts.forEach(prompt => {
+          const promptItem = document.createElement('div');
+          promptItem.className = 'bg-white rounded-lg shadow p-3 cursor-pointer hover:bg-blue-50 transition-colors border border-transparent hover:border-blue-200';
+          promptItem.dataset.id = prompt.id;
+          const name = document.createElement('h3');
+          name.className = 'font-medium text-gray-800 truncate';
+          name.textContent = prompt.name;
+          const tags = document.createElement('div');
+          tags.className = 'mt-1 text-xs';
+          if (prompt.tags && prompt.tags.length > 0) {
+            prompt.tags.forEach(tag => {
+              const tagSpan = document.createElement('span');
+              tagSpan.className = 'tag';
+              tagSpan.textContent = tag;
+              tags.appendChild(tagSpan);
+            });
+          }
+          promptItem.appendChild(name);
+          promptItem.appendChild(tags);
+          const actionsDiv = document.createElement('div');
+          actionsDiv.className = "mt-2 flex space-x-2";
+          if (!isTrashView) {
+            const duplicateBtn = document.createElement('button');
+            duplicateBtn.className = "text-blue-600 hover:text-blue-800 text-xs";
+            duplicateBtn.innerHTML = '<i class="fas fa-copy"></i> Duplicate';
+            duplicateBtn.addEventListener('click', (e) => {
+              e.stopPropagation();
+              duplicatePrompt(prompt.id);
+            });
+            actionsDiv.appendChild(duplicateBtn);
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = "text-red-600 hover:text-red-800 text-xs";
+            deleteBtn.innerHTML = '<i class="fas fa-trash"></i> Delete';
+            deleteBtn.addEventListener('click', (e) => {
+              e.stopPropagation();
+              trashPrompt(prompt.id);
+            });
+            actionsDiv.appendChild(deleteBtn);
+          } else {
+            const recoverBtn = document.createElement('button');
+            recoverBtn.className = "text-green-600 hover:text-green-800 text-xs";
+            recoverBtn.innerHTML = '<i class="fas fa-undo"></i> Recover';
+            recoverBtn.addEventListener('click', (e) => {
+              e.stopPropagation();
+              recoverPrompt(prompt.id);
+            });
+            actionsDiv.appendChild(recoverBtn);
+            const permDeleteBtn = document.createElement('button');
+            permDeleteBtn.className = "text-red-600 hover:text-red-800 text-xs";
+            permDeleteBtn.innerHTML = '<i class="fas fa-times"></i> Delete Permanently';
+            permDeleteBtn.addEventListener('click', (e) => {
+              e.stopPropagation();
+              if (confirm("Are you sure you want to permanently delete this prompt?")) {
+                  permanentlyDeletePrompt(prompt.id);
+              }
+            });
+            actionsDiv.appendChild(permDeleteBtn);
+          }
+          promptItem.appendChild(actionsDiv);
+          promptItem.addEventListener('click', () => {
+            loadPromptForEditing(prompt.id);
+            if (window.innerWidth < 768) {
+              closeMobileSidebar.click();
+            }
+          });
+          promptList.appendChild(promptItem);
+          mobilePromptList.appendChild(promptItem.cloneNode(true));
+        });
+      }
+      
+      // Load a prompt into the editor
+      function loadPromptForEditing(id) {
+        const prompt = prompts.find(p => p.id === id);
+        if (!prompt) return;
+        currentPromptId = id;
+        isEditing = true;
+        if (prompt.trashed) return;
+        promptName.value = prompt.name;
+        promptTags.value = prompt.tags ? prompt.tags.join(', ') : '';
+        promptCategory.value = prompt.category || '';
+        // Use the latest version from the history array if available
+        promptContent.value = (prompt.history && prompt.history.length > 0) ? prompt.history[0].content : "";
+        promptForm.classList.remove('hidden');
+        updatePreview();
+        document.querySelectorAll('[data-id]').forEach(el => {
+          if (el.dataset.id === id) {
+            el.classList.add('border-blue-400', 'bg-blue-50');
+          } else {
+            el.classList.remove('border-blue-400', 'bg-blue-50');
+          }
+        });
+      }
+      
+      // Update the preview with the current prompt content
+      function updatePreview() {
+        const content = promptContent.value;
+        // Process variables for input fields (use a Set to avoid duplicates)
+        const variableRegex = /\$\{(.*?)\}/g;
+        let match;
+        const variablesSet = new Set();
+        while ((match = variableRegex.exec(content)) !== null) {
+          variablesSet.add(match[1]);
+        }
+        variablesContainer.innerHTML = '';
+        if (variablesSet.size > 0) {
+          const variablesTitle = document.createElement('h4');
+          variablesTitle.className = 'text-sm font-medium text-gray-700 mb-2';
+          variablesTitle.textContent = 'Fill in the variables:';
+          variablesContainer.appendChild(variablesTitle);
+        }
+        variablesSet.forEach(variable => {
+          const group = document.createElement('div');
+          group.className = 'mb-2';
+          const label = document.createElement('label');
+          label.className = 'block text-sm font-medium text-gray-700 mb-1';
+          label.textContent = variable;
+          label.htmlFor = `input_${variable}`;
+          const input = document.createElement('input');
+          input.type = 'text';
+          input.id = `input_${variable}`;
+          input.className = 'w-full border border-gray-300 rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent';
+          input.placeholder = `Enter ${variable}`;
+          input.addEventListener('input', updatePromptDisplay);
+          group.appendChild(label);
+          group.appendChild(input);
+          variablesContainer.appendChild(group);
+        });
+        
+        // Process prefilled parts (using {{...}} syntax)
+        prefilledContainer.innerHTML = '';
+        const prefilledRegex = /\{\{([\s\S]*?)\}\}/g;
+        let prefilledParts = [];
+        let prefilledMatch;
+        while ((prefilledMatch = prefilledRegex.exec(content)) !== null) {
+          prefilledParts.push(prefilledMatch[1]);
+        }
+        if (prefilledParts.length > 0) {
+          const prefilledTitle = document.createElement('h4');
+          prefilledTitle.className = 'text-sm font-medium text-gray-700 mb-2';
+          prefilledTitle.textContent = 'Toggle prefilled parts:';
+          prefilledContainer.appendChild(prefilledTitle);
+        }
+        prefilledParts.forEach((part, index) => {
+          const group = document.createElement('div');
+          group.className = 'mb-2 flex items-center';
+          const checkbox = document.createElement('input');
+          checkbox.type = 'checkbox';
+          checkbox.id = `prefilled_${index}`;
+          checkbox.checked = (prefilledCheckboxStates[index] !== undefined) ? prefilledCheckboxStates[index] : true;
+          checkbox.className = 'mr-2';
+          checkbox.addEventListener('change', function() {
+            prefilledCheckboxStates[index] = this.checked;
+            updatePromptDisplay();
+          });
+          const label = document.createElement('label');
+          label.htmlFor = `prefilled_${index}`;
+          label.className = 'text-sm text-gray-700';
+          label.textContent = part;
+          group.appendChild(checkbox);
+          group.appendChild(label);
+          prefilledContainer.appendChild(group);
+        });
+        
+        // Process global templates (using <<KEY>> syntax)
+        globalTemplatesContainer.innerHTML = '';
+        const globalRegex = /<<\s*(.*?)\s*>>/g;
+        let globalParts = [];
+        let globalMatch;
+        while ((globalMatch = globalRegex.exec(content)) !== null) {
+          globalParts.push(globalMatch[1]);
+        }
+        if (globalParts.length > 0) {
+          const globalTitle = document.createElement('h4');
+          globalTitle.className = 'text-sm font-medium text-gray-700 mb-2';
+          globalTitle.textContent = 'Toggle global templates:';
+          globalTemplatesContainer.appendChild(globalTitle);
+        }
+        globalParts.forEach((part, index) => {
+          const group = document.createElement('div');
+          group.className = 'mb-2 flex items-center';
+          const checkbox = document.createElement('input');
+          checkbox.type = 'checkbox';
+          checkbox.id = `global_${index}`;
+          checkbox.checked = (globalCheckboxStates[index] !== undefined) ? globalCheckboxStates[index] : true;
+          checkbox.className = 'mr-2';
+          checkbox.addEventListener('change', function() {
+            globalCheckboxStates[index] = this.checked;
+            updatePromptDisplay();
+          });
+          const label = document.createElement('label');
+          label.htmlFor = `global_${index}`;
+          label.className = 'text-sm text-gray-700';
+          label.textContent = part;
+          group.appendChild(checkbox);
+          group.appendChild(label);
+          globalTemplatesContainer.appendChild(group);
+        });
+        updatePromptDisplay();
+        showComposerView();
+      }
+      
+      // Update the displayed prompt with variable values, template parts, prefilled parts, and global templates
+      function updatePromptDisplay() {
+        let content = promptContent.value;
+        content = content.replace(/\$\{(.*?)\}/g, (match, variable) => {
+          const input = document.getElementById(`input_${variable}`);
+          if (input && input.value) {
+            return `<span class="input-field">${input.value}</span>`;
+          }
+          return `<span class="input-field">${variable}</span>`;
+        });
+        content = content.replace(/\[(.*?)\]/g, (match, templatePart) => {
+          return `<span class="template-part">${templatePart}</span>`;
+        });
+        let prefilledCounter = 0;
+        content = content.replace(/\{\{([\s\S]*?)\}\}/g, (match, prefilledContent) => {
+          const checkbox = document.getElementById(`prefilled_${prefilledCounter}`);
+          const isChecked = checkbox ? checkbox.checked : true;
+          const result = isChecked ? `<span class="prefilled-part">${prefilledContent}</span>` : '';
+          prefilledCounter++;
+          return result;
+        });
+        let globalCounter = 0;
+        content = content.replace(/<<\s*(.*?)\s*>>/g, (match, key) => {
+          const templates = loadGlobalTemplates();
+          const checkbox = document.getElementById(`global_${globalCounter}`);
+          const isChecked = checkbox ? checkbox.checked : true;
+          const replacement = templates[key.trim()];
+          let result;
+          if (replacement) {
+            result = isChecked ? `<span class="global-part">${replacement}</span>` : '';
+          } else {
+            result = `<span class="error">Error: Global template "${key.trim()}" is not defined</span>`;
+          }
+          globalCounter++;
+          return result;
+        });
+        promptPreview.innerHTML = content;
+      }
+      
+      // Save a prompt to the library (updates the history with a single version)
+      function savePrompt() {
+        const name = promptName.value.trim();
+        const content = promptContent.value.trim();
+        const tags = promptTags.value.split(',').map(tag => tag.trim()).filter(tag => tag);
+        const category = promptCategory.value.trim();
+        if (!name || !content) {
+          showToast('Please provide both a name and content for the prompt', 'error');
+          return;
+        }
+        if (!category) {
+          showToast('Please provide a category for the prompt', 'error');
+          return;
+        }
+        
+        // Create a new history entry with the latest prompt content.
+        const newHistoryEntry = {
+          content: content,
+          savedAt: new Date().toISOString(),
+          versionName: ""  // Optional, can be set in the future
+        };
+        
+        let promptData = {};
+        if (isEditing) {
+          // Preserve the createdAt of the existing prompt.
+          const existingPrompt = prompts.find(p => p.id === currentPromptId);
+          promptData = {
+            id: currentPromptId,
+            name,
+            tags,
+            category,
+            createdAt: existingPrompt.createdAt,
+            updatedAt: new Date().toISOString(),
+            trashed: false,
+            history: [ newHistoryEntry ]
+          };
+          const index = prompts.findIndex(p => p.id === currentPromptId);
+          if (index !== -1) {
+            prompts[index] = promptData;
+          }
+        } else {
+          promptData = {
+            id: currentPromptId || Date.now().toString(),
+            name,
+            tags,
+            category,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            trashed: false,
+            history: [ newHistoryEntry ]
+          };
+          prompts.unshift(promptData);
+        }
+        localStorage.setItem('prompts', JSON.stringify(prompts));
+        showToast(`Prompt "${name}" ${isEditing ? 'updated' : 'created'} successfully`);
+        // resetForm();  // Removed to keep the composer fields open
+        loadPrompts();
+        updateHomeView();
+      }
+      
+      // Duplicate a prompt (copies the history, converting legacy content if needed)
+      function duplicatePrompt(id) {
+        const original = prompts.find(p => p.id === id);
+        if (!original) {
+          showToast('Prompt not found', 'error');
+          return;
+        }
+        let baseName = original.name;
+        let newName = baseName + " copy";
+        let counter = 2;
+        while (prompts.some(p => !p.trashed && p.name === newName)) {
+          newName = baseName + " copy " + counter;
+          counter++;
+        }
+        let newHistory;
+        // If the prompt already uses history, copy it; otherwise convert the legacy content.
+        if (original.history) {
+          newHistory = JSON.parse(JSON.stringify(original.history));
+        } else {
+          newHistory = [{ content: original.content, savedAt: new Date().toISOString(), versionName: "" }];
+        }
+        const newPrompt = {
+          ...original,
+          id: Date.now().toString(),
+          name: newName,
+          category: original.category,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          trashed: false,
+          history: newHistory
+        };
+        prompts.unshift(newPrompt);
+        localStorage.setItem('prompts', JSON.stringify(prompts));
+        showToast(`Prompt duplicated as "${newName}"`);
+        loadPrompts();
+        updateHomeView();
+      }
+      
+      // Move a prompt to trash
+      function trashPrompt(id) {
+        const index = prompts.findIndex(p => p.id === id);
+        if (index === -1) return;
+        prompts[index].trashed = true;
+        prompts[index].trashedAt = new Date().toISOString();
+        localStorage.setItem('prompts', JSON.stringify(prompts));
+        resetForm();
+        showToast('Prompt moved to trash');
+        loadPrompts();
+        updateHomeView();
+      }
+      
+      // Recover a prompt from trash
+      function recoverPrompt(id) {
+        const index = prompts.findIndex(p => p.id === id);
+        if (index === -1) return;
+        prompts[index].trashed = false;
+        delete prompts[index].trashedAt;
+        prompts[index].updatedAt = new Date().toISOString();
+        localStorage.setItem('prompts', JSON.stringify(prompts));
+        showToast('Prompt recovered');
+        loadPrompts();
+        updateHomeView();
+        if (!document.getElementById('trashView').classList.contains('hidden')) {
+          loadTrashPrompts();
+        }
+      }
+      
+      // Permanently delete a prompt
+      function permanentlyDeletePrompt(id) {
+        prompts = prompts.filter(p => p.id !== id);
+        localStorage.setItem('prompts', JSON.stringify(prompts));
+        showToast('Prompt permanently deleted');
+        loadPrompts();
+        updateHomeView();
+        if (!document.getElementById('trashView').classList.contains('hidden')) {
+          loadTrashPrompts();
+        }
+      }
+
+      // Expose trash functions globally for inline onclick handlers
+      window.recoverPrompt = recoverPrompt;
+      window.permanentlyDeletePrompt = permanentlyDeletePrompt;
+      
+      // Reset the form
+      function resetForm() {
+        currentPromptId = null;
+        isEditing = false;
+        promptName.value = '';
+        promptTags.value = '';
+        promptCategory.value = '';
+        promptContent.value = '';
+        variablesContainer.innerHTML = '';
+        prefilledContainer.innerHTML = '';
+        globalTemplatesContainer.innerHTML = '';
+        promptPreview.innerHTML = '';
+        document.querySelectorAll('[data-id]').forEach(el => {
+          el.classList.remove('border-blue-400', 'bg-blue-50');
+        });
+      }
+      
+      // Toast notification
+      function showToast(message, type = 'success') {
+        toastMessage.textContent = message;
+        const icon = toast.querySelector('i');
+        if (type === 'error') {
+          icon.className = 'fas fa-exclamation-circle mr-2 text-red-400';
+        } else {
+          icon.className = 'fas fa-check-circle mr-2 text-green-400';
+        }
+        toast.classList.remove('hidden');
+        toast.classList.add('show');
+        setTimeout(() => {
+          toast.classList.remove('show');
+          setTimeout(() => {
+            toast.classList.add('hidden');
+          }, 300);
+        }, 3000);
+      }
+      
+      // Copy to clipboard
+      function copyToClipboard(text, successMessage) {
+        navigator.clipboard.writeText(text).then(() => {
+          showToast(successMessage);
+        }).catch(err => {
+          console.error('Failed to copy:', err);
+          showToast('Failed to copy to clipboard', 'error');
+        });
+      }
+      
+      // Toggle JSON view
+      function toggleJsonView() {
+        jsonViewVisible = !jsonViewVisible;
+        if (jsonViewVisible) {
+          const prompt = {
+            name: promptName.value.trim(),
+            content: promptContent.value.trim(),
+            tags: promptTags.value.split(',').map(tag => tag.trim()).filter(tag => tag)
+          };
+          promptJson.textContent = JSON.stringify(prompt, null, 2);
+          jsonView.classList.remove('hidden');
+        } else {
+          jsonView.classList.add('hidden');
+        }
+      }
+      
+      // Mark selected text as a template part
+      function markAsTemplate() {
+        const textarea = promptContent;
+        const startPos = textarea.selectionStart;
+        const endPos = textarea.selectionEnd;
+        const selectedText = textarea.value.substring(startPos, endPos);
+        if (!selectedText) {
+          showToast('No text selected to mark as template', 'error');
+          return;
+        }
+        const beforeText = textarea.value.substring(0, startPos);
+        const afterText = textarea.value.substring(endPos);
+        textarea.value = beforeText + '[' + selectedText + ']' + afterText;
+        setTimeout(() => {
+          textarea.selectionStart = startPos + 1;
+          textarea.selectionEnd = endPos + 1;
+          textarea.focus();
+        }, 0);
+        updatePreview();
+      }
+      
+      // Add variable to prompt
+      function addVariable() {
+        const variableName = prompt('Enter variable name:');
+        if (!variableName) return;
+        const textarea = promptContent;
+        const startPos = textarea.selectionStart;
+        const beforeText = textarea.value.substring(0, startPos);
+        const afterText = textarea.value.substring(startPos);
+        textarea.value = beforeText + '${' + variableName + '}' + afterText;
+        setTimeout(() => {
+          textarea.selectionStart = startPos + variableName.length + 3;
+          textarea.selectionEnd = startPos + variableName.length + 3;
+          textarea.focus();
+        }, 0);
+        updatePreview();
+      }
+      
+      // Helper functions for view switching
+      function showHomeView() {
+        homeView.classList.remove('hidden');
+        composerView.classList.add('hidden');
+        settingsView.classList.add('hidden');
+        trashView.classList.add("hidden");
+        updateHomeView();
+      }
+      function showComposerView() {
+        composerView.classList.remove('hidden');
+        homeView.classList.add('hidden');
+        settingsView.classList.add('hidden');
+        trashView.classList.add("hidden");
+      }
+      function showSettingsView() {
+        settingsView.classList.remove('hidden');
+        composerView.classList.add('hidden');
+        homeView.classList.add('hidden');
+        trashView.classList.add("hidden");
+      }
+
+      function showTrashView() {
+        document.getElementById('trashView').classList.remove('hidden');
+        homeView.classList.add('hidden');
+        composerView.classList.add('hidden');
+        settingsView.classList.add('hidden');
+        loadTrashPrompts();
+      }
+
+      function loadTrashPrompts() {
+        const trashContent = document.getElementById('trashContent');
+        trashContent.innerHTML = '';
+        const trashedPrompts = prompts.filter(p => p.trashed);
+        if (trashedPrompts.length === 0) {
+            trashContent.innerHTML = '<div class="text-center text-gray-500 py-4">Trash is empty</div>';
+            return;
+        }
+        trashedPrompts.forEach(p => {
+            const promptDiv = document.createElement('div');
+            promptDiv.className = 'bg-white rounded-lg shadow p-3 mb-2';
+            promptDiv.innerHTML = `
+            <h3 class="font-medium text-gray-800">${p.name}</h3>
+            <div class="mt-2 flex space-x-2">
+                <button class="text-green-600 hover:text-green-800 text-xs" onclick="recoverPrompt('${p.id}')">
+                <i class="fas fa-undo"></i> Recover
+                </button>
+                <button class="text-red-600 hover:text-red-800 text-xs" onclick="if(confirm('Are you sure you want to permanently delete this prompt?')) { permanentlyDeletePrompt('${p.id}'); loadTrashPrompts(); }">
+                <i class="fas fa-times"></i> Delete Permanently
+                </button>
+            </div>
+            `;
+            trashContent.appendChild(promptDiv);
+        });
+      }
+
+      
+      // Update Home View with prompts grouped by category
+      function updateHomeView() {
+        const activePrompts = prompts.filter(p => !p.trashed);
+        const categories = {};
+        activePrompts.forEach(p => {
+          const cat = p.category || 'Uncategorized';
+          if (!categories[cat]) {
+            categories[cat] = [];
+          }
+          categories[cat].push(p);
+        });
+        const sortedCategories = Object.keys(categories).sort();
+        let html = '<div class="grid gap-4" style="grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));">';
+        sortedCategories.forEach(cat => {
+          categories[cat].sort((a, b) => a.name.localeCompare(b.name));
+          html += `<div class="p-4 bg-white rounded-lg shadow">
+            <h3 class="text-xl font-bold text-gray-800 mb-2">${cat}</h3>`;
+          categories[cat].forEach(p => {
+            html += `<div class="prompt-item cursor-pointer hover:bg-blue-50 p-2 rounded" data-id="${p.id}">${p.name}</div>`;
+          });
+          html += `</div>`;
+        });
+        html += '</div>';
+        document.getElementById('homeContent').innerHTML = html;
+        document.querySelectorAll('.prompt-item').forEach(item => {
+          item.addEventListener('click', () => {
+            const id = item.getAttribute('data-id');
+            loadPromptForEditing(id);
+            showComposerView();
+          });
+        });
+      }
+      
+      // Event listeners
+      newPromptBtn.addEventListener('click', () => {
+        resetForm();
+        showComposerView();
+      });
+      mobileNewPromptBtn.addEventListener('click', () => {
+        resetForm();
+        closeMobileSidebar.click();
+      });
+      savePromptBtn.addEventListener('click', savePrompt);
+      cancelPromptBtn.addEventListener('click', function() {
+        if (currentPromptId) {
+          // Reset the fields to the originally loaded prompt values.
+          const prompt = prompts.find(p => p.id === currentPromptId);
+          if (prompt) {
+            promptName.value = prompt.name;
+            promptTags.value = prompt.tags ? prompt.tags.join(', ') : '';
+            promptCategory.value = prompt.category || '';
+            // Load content from history
+            promptContent.value = (prompt.history && prompt.history.length > 0) ? prompt.history[0].content : "";
+            updatePreview();
+          }
+        } else {
+          // For new prompts, simply clear the form.
+          resetForm();
+        }
+      });
+      duplicatePromptBtn.addEventListener('click', () => {
+        if (!currentPromptId) {
+          showToast('No prompt selected to duplicate', 'error');
+          return;
+        }
+        duplicatePrompt(currentPromptId);
+      });
+      deletePromptBtn.addEventListener('click', () => {
+        if (!currentPromptId) {
+            showToast('No prompt selected to delete', 'error');
+            return;
+        }
+        trashPrompt(currentPromptId);
+      });
+      promptContent.addEventListener('input', updatePreview);
+      toggleViewBtn.addEventListener('click', toggleJsonView);
+      copyJsonBtn.addEventListener('click', () => {
+        copyToClipboard(promptJson.textContent, 'JSON copied to clipboard!');
+      });
+      copyPromptBtn.addEventListener('click', () => {
+        let text = promptPreview.innerText;
+        const inputs = variablesContainer.querySelectorAll('input');
+        inputs.forEach(input => {
+          const variableName = input.id.replace('input_', '');
+          const regex = new RegExp(`\\$\\{${variableName}\\}`, 'g');
+          text = text.replace(regex, input.value);
+        });
+        text = text.replace(/\[(.*?)\]/g, '$1');
+        copyToClipboard(text, 'Prompt copied to clipboard!');
+      });
+      toggleTemplateBtn.addEventListener('click', markAsTemplate);
+      addVariableBtn.addEventListener('click', addVariable);
+      searchPrompts.addEventListener('input', (e) => {
+        loadPrompts(e.target.value);
+      });
+      mobileSearchPrompts.addEventListener('input', (e) => {
+        loadPrompts(e.target.value);
+      });
+      mobileSidebarToggle.addEventListener('click', () => {
+        mobileSidebarOverlay.classList.remove('hidden');
+        mobileSidebar.classList.remove('-translate-x-full');
+        document.body.style.overflow = 'hidden';
+      });
+      closeMobileSidebar.addEventListener('click', () => {
+        mobileSidebarOverlay.classList.add('hidden');
+        mobileSidebar.classList.add('-translate-x-full');
+        document.body.style.overflow = 'auto';
+      });
+      mobileSidebarOverlay.addEventListener('click', () => {
+        closeMobileSidebar.click();
+      });
+      
+      // Settings and Composer button events (using helper functions)
+      settingsBtn.addEventListener('click', showSettingsView);
+      composerBtn.addEventListener('click', showComposerView);
+      homeBtn.addEventListener('click', showHomeView);
+      mobileSettingsBtn.addEventListener('click', showSettingsView);
+      mobileHomeBtn.addEventListener('click', () => {
+        showHomeView();
+        closeMobileSidebar.click();
+      });
+      trashBtn.addEventListener('click', () => {
+        showTrashView();
+      });
+      
+      // Export Library: Export prompts and global templates with timestamp
+      exportLibraryBtn.addEventListener('click', () => {
+        const activePrompts = prompts.filter(p => !p.trashed);
+        const globalTemplates = loadGlobalTemplates();
+        const exportData = { prompts: activePrompts, globalTemplates: globalTemplates };
+        const data = JSON.stringify(exportData, null, 2);
+        const blob = new Blob([data], {type: 'application/json'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        const now = new Date().toISOString();
+        a.href = url;
+        a.download = `prompt-library-${now}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+      });
+      
+      // Import Library: Replace all prompts and global templates after confirmation
+      importLibraryBtn.addEventListener('click', () => {
+        if (confirm("This will replace all prompts and global templates. Are you sure?")) {
+          importMode = "replace";
+          importFileInput.click();
+        }
+      });
+      
+      importFileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(event) {
+          try {
+            const importedData = JSON.parse(event.target.result);
+            if (importMode === "replace") {
+              if (importedData.prompts && Array.isArray(importedData.prompts)) {
+                prompts = importedData.prompts;
+              } else {
+                prompts = importedData;
+              }
+              if (importedData.globalTemplates) {
+                saveGlobalTemplates(importedData.globalTemplates);
+              } else {
+                saveGlobalTemplates({});
+              }
+              localStorage.setItem('prompts', JSON.stringify(prompts));
+              showToast("Library imported successfully");
+              loadPrompts();
+              updateGlobalTemplatesUI();
+              updateHomeView();
+            } else {
+              showToast("Import mode not set", "error");
+            }
+          } catch (err) {
+            showToast("Error reading file", "error");
+          }
+          // Reset importMode here, after processing
+          importMode = "";
+        }
+        reader.readAsText(file);
+      });
+      
+      updateGlobalTemplatesUI();
+      loadPrompts();
+      
+      // Add sample prompts if library is empty
+      if (prompts.length === 0) {
+        prompts = [
+          {
+            id: '1',
+            name: 'Content Writer Assistant',
+            history: [
+              {
+                content: 'Act as a professional content writer. Write a ${type} about ${topic} in a ${tone} tone. Keep it ${length} and include [key points] and [call to action].',
+                savedAt: '2023-01-01T00:00:00Z',
+                versionName: ""
+              }
+            ],
+            tags: ['writing', 'content', 'assistant'],
+            category: 'Writing',
+            createdAt: '2023-01-01T00:00:00Z',
+            updatedAt: '2023-01-01T00:00:00Z',
+            trashed: false
+          },
+          {
+            id: '2',
+            name: 'SEO Meta Description',
+            history: [
+              {
+                content: 'Write an SEO-optimized meta description for a page about ${product} targeting the keywords "${keywords}". Keep it under ${length} characters and include [brand name] and [unique value proposition].\n\n<<ask-five>>',
+                savedAt: '2023-01-02T00:00:00Z',
+                versionName: ""
+              }
+            ],
+            tags: ['seo', 'marketing', 'content'],
+            category: 'Marketing',
+            createdAt: '2023-01-02T00:00:00Z',
+            updatedAt: '2023-01-02T00:00:00Z',
+            trashed: false
+          },
+          {
+            id: '3',
+            name: 'Code Debugging Helper',
+            history: [
+              {
+                content: 'I\'m getting ${error} in my ${language} code. The code is supposed to ${function}. Here\'s the relevant part: \n\n[problematic code]\n\nPlease analyze and suggest fixes, considering [best practices] for this language.',
+                savedAt: '2023-01-03T00:00:00Z',
+                versionName: ""
+              }
+            ],
+            tags: ['programming', 'debugging', 'technical'],
+            category: 'Programming',
+            createdAt: '2023-01-03T00:00:00Z',
+            updatedAt: '2023-01-03T00:00:00Z',
+            trashed: false
+          }
+        ];
+        localStorage.setItem('prompts', JSON.stringify(prompts));
+        loadPrompts();
+        updateHomeView();
+      }
+
+      if (!localStorage.getItem('globalTemplates')) {
+          const defaultGlobalTemplates = {
+              "ask-five": "Before you reply, ask me five questions that will improve your answer."
+          };
+          localStorage.setItem('globalTemplates', JSON.stringify(defaultGlobalTemplates));
+          updateGlobalTemplatesUI();
+      }
+    });
+  </script>
+</body>
+</html>
