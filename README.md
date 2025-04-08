@@ -36,4 +36,4 @@ Just download the .html file and run in a web broswer, and that's it!
 
 ## Screenshot of The Application
 
-![Prompt Library Screenshot](https://raw.githubusercontent.com/goossaert/prompt-library/refs/heads/main/screenshot/prompt-library-screenshot-01.jpeg)
+![Prompt Library Screenshot](https://raw.githubusercontent.com/goossaert/prompt-library/refs/heads/main/screenshots/prompt-library-screenshot-01.jpeg)
