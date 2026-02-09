@@ -78,6 +78,9 @@
     textarea {
       min-height: 450px;
     }
+    #variablesContainer textarea {
+      min-height: 30px;
+    }
     /* Dark mode styles */
     .dark body {
       background-color: #1a202c;
@@ -275,7 +278,7 @@
           <div class="mb-4">
             <label for="promptContent" class="block text-sm font-medium text-gray-700 mb-1">Prompt Content</label>
             <p class="text-xs text-gray-500 mb-2">
-              Use <code class="bg-gray-100 px-1 py-0.5 rounded">${variable}</code> for input fields<br>Use <span class="template-part">[brackets]</span> to indicate placeholders to replace manually<br>Use <code class="bg-gray-100 px-1 py-0.5 rounded">{{double braces}}</code> for optional parts (can be toggled on and off)<br>Use <code class="bg-gray-100 px-1 py-0.5 rounded">&lt;&lt;double chevrons&gt;&gt;</code> to use global templates that are shared across all prompts (can be toggled on and off).
+              Use <code class="bg-gray-100 px-1 py-0.5 rounded">${variable}</code> for input fields<br>Use <!--span class="template-part">[brackets]</span> to indicate placeholders to replace manually<br-->Use <code class="bg-gray-100 px-1 py-0.5 rounded">{{double braces}}</code> for optional parts (can be toggled on and off)<br>Use <code class="bg-gray-100 px-1 py-0.5 rounded">&lt;&lt;double chevrons&gt;&gt;</code> to use global templates that are shared across all prompts (can be toggled on and off).
             </p>
             <textarea id="promptContent" class="w-full border border-gray-300 rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"></textarea>
           </div>
@@ -295,7 +298,7 @@
               </button>
               <button id="cancelPromptBtn" class="ml-2 bg-gray-200 hover:bg-gray-300 text-gray-700 py-2 px-4 rounded-lg">
                 Reset
-              </button>              
+              </button>
               <button id="duplicatePromptBtn" class="ml-2 bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg">
                 Duplicate Prompt
               </button>
@@ -758,8 +761,7 @@
           label.className = 'block text-sm font-medium text-gray-700 mb-1';
           label.textContent = variable;
           label.htmlFor = `input_${variable}`;
-          const input = document.createElement('input');
-          input.type = 'text';
+          const input = document.createElement('textarea');
           input.id = `input_${variable}`;
           input.className = 'w-full border border-gray-300 rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent';
           input.placeholder = `Enter ${variable}`;
@@ -843,18 +845,18 @@
       }
       
       // Update the displayed prompt with variable values, template parts, prefilled parts, and global templates
-      function updatePromptDisplay() {
+      function updatePromptDisplay(withoutVariableNames = false) {
         let content = promptContent.value;
         content = content.replace(/\$\{(.*?)\}/g, (match, variable) => {
           const input = document.getElementById(`input_${variable}`);
-          if (input && input.value) {
-            return `<span class="input-field">${input.value}</span>`;
+          if (input && (withoutVariableNames || input.value)) {
+            return `<span class="input-field">${input.value ?? ''}</span>`;
           }
           return `<span class="input-field">${variable}</span>`;
         });
-        content = content.replace(/\[(.*?)\]/g, (match, templatePart) => {
-          return `<span class="template-part">${templatePart}</span>`;
-        });
+//      content = content.replace(/\[(.*?)\]/g, (match, templatePart) => {
+//        return `<span class="template-part">${templatePart}</span>`;
+//      });
         let prefilledCounter = 0;
         content = content.replace(/\{\{([\s\S]*?)\}\}/g, (match, prefilledContent) => {
           const checkbox = document.getElementById(`prefilled_${prefilledCounter}`);
@@ -1260,14 +1262,16 @@
         copyToClipboard(promptJson.textContent, 'JSON copied to clipboard!');
       });
       copyPromptBtn.addEventListener('click', () => {
-        let text = promptPreview.innerText;
-        const inputs = variablesContainer.querySelectorAll('input');
-        inputs.forEach(input => {
-          const variableName = input.id.replace('input_', '');
-          const regex = new RegExp(`\\$\\{${variableName}\\}`, 'g');
-          text = text.replace(regex, input.value);
-        });
-        text = text.replace(/\[(.*?)\]/g, '$1');
+        updatePromptDisplay(true)
+          let text = promptPreview.innerText;
+          const inputs = variablesContainer.querySelectorAll('input');
+          inputs.forEach(input => {
+            const variableName = input.id.replace('input_', '');
+            const regex = new RegExp(`\\$\\{${variableName}\\}`, 'g');
+            text = text.replace(regex, input.value ?? '');
+          });
+//        text = text.replace(/\[(.*?)\]/g, '$1');
+        updatePromptDisplay(false)
         copyToClipboard(text, 'Prompt copied to clipboard!');
       });
       toggleTemplateBtn.addEventListener('click', markAsTemplate);

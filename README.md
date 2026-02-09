@@ -7,7 +7,7 @@ When using LLMs daily, keeping track of many prompts and having to identify plac
 
 ## How To Use
 
-Just download the .html file and run in a web broswer, and that's it!
+Just download the .html file and run in a web browser or [use the live version](https://rozek.github.io/prompt-library/prompt-library.html), and that's it!
 
 
 ## Features
